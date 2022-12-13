@@ -1,0 +1,57 @@
+{
+  "configuration": {
+    "name": "ReplicaLog",
+    "appenders": {
+
+      "File":{
+        "name": "ReplicaLogFile",
+        "fileName": "${env:SERVER_HOME}/log/replica.log",
+        "append": false,
+        "PatternLayout": {
+          "pattern": "%d{yyyy-MM-dd HH:mm:ss,SSS}{GMT+0} [%-5p]%x[%C{3}:%L] - %m%n"
+        },
+        "ThresholdFilter": {
+          "level": "${env:SERVER_LOG_LEVEL:-ALL}",
+          "onMatch": "ACCEPT",
+          "onMismatch": "DENY"
+        }
+      },
+      "Console": {
+        "name": "ConsoleOut",
+        "target": "SYSTEM_OUT",
+        "PatternLayout": {
+          "pattern": "%d{yyyy-MM-dd HH:mm:ss,SSS}{GMT+0} [%-5p][%C{3}:%L] - %m%n"
+        },
+        "ThresholdFilter": {
+          "level": "${env:SERVER_LOG_LEVEL:-ALL}",
+          "onMatch": "ACCEPT",
+          "onMismatch": "DENY"
+        }
+      }
+
+    },
+    "loggers": {
+      "logger": [
+        {
+          "name": "logger",
+          "additivity": "false",
+          "AppenderRef": [
+            {
+              "ref": "ReplicaLogFile"
+            },{
+              "ref": "ConsoleOut"
+            }
+          ]
+        }
+      ],
+      "root": {
+        "level": "all",
+        "AppenderRef": [
+          {
+            "ref": "ReplicaLogFile"
+          }
+        ]
+      }
+    }
+  }
+}
