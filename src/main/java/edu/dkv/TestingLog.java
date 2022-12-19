@@ -1,17 +1,19 @@
 package edu.dkv;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.util.function.IntConsumer;
-import java.util.function.Supplier;
+import java.util.List;
 import java.util.stream.IntStream;
 
 public class TestingLog {
 
     private final static Logger logger = LogManager.getLogger(TestingLog.class);
 
-    public static void main(String[] args) {
+    public static void main(String[] args)  {
         Runnable r = () -> {
             logger.info("Hello, test at INFO");
             logger.debug("Hello, test at DEBUG");
