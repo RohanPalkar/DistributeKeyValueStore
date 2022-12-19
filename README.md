@@ -13,8 +13,10 @@ A personal project for designing and implementing a distributed key value store.
 
 ### Logging
 Following environment variables are exposed for controlling the logging configuration :
-- `SERVER_HOME` : The server log file will be generated under the following directory `$SERVER_HOME/log/replica.log`
-- `SERVER_LOG_LEVEL` : All log4j2 supported log levels. By default `ALL`
+- `SERVER_HOME` _(Mandatory)_ : The server log file will be generated under the following directory `$SERVER_HOME/log/replicaXXXX.log`
+- `SERVER_LOG_LEVEL` _(Default: `INFO`)_: All log4j2 supported log levels - specify level to override the default.
+- `SERVER_ID` : The replica-server-Id incase of a cluster environment or a process-Id (threadId) in case of single machine environment _(emulated)_.
+
 ### Resources
 - [Java Tutorials - All About Sockets](https://docs.oracle.com/javase/tutorial/networking/sockets/definition.html)
 - [Java Tutorials - All About Datagrams](https://docs.oracle.com/javase/tutorial/networking/datagrams/index.html)
