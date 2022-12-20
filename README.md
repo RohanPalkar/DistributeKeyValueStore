@@ -20,3 +20,5 @@ Following environment variables are exposed for controlling the logging configur
 ### Resources
 - [Java Tutorials - All About Sockets](https://docs.oracle.com/javase/tutorial/networking/sockets/definition.html)
 - [Java Tutorials - All About Datagrams](https://docs.oracle.com/javase/tutorial/networking/datagrams/index.html)
+- [Java Concurrency - Baeldung - Guide to CompletableFuture](https://www.baeldung.com/java-completablefuture)
+- [Java Concurrency - Baeldung - Guide to java.util.concurrent.Future](https://www.baeldung.com/java-future)

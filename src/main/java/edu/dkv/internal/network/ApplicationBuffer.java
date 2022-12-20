@@ -28,7 +28,7 @@ public class ApplicationBuffer {
         int expectedSize = currBufferSize + bufferLength;
         if(expectedSize > APP_BUFFER_SIZE){
             logger.error("Application buffer is either full or cannot add incoming message.");
-            throw new ApplicationBufferOverflowException("Application buffer is either full or cannot accomodate more messages. Size: " + expectedSize);
+            throw new ApplicationBufferOverflowException("ERROR: Application buffer is either full or cannot accomodate more messages. Size: " + expectedSize);
         }
 
         // Adding to application buffer.

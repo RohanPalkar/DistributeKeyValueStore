@@ -1,5 +1,6 @@
 package edu.dkv.internal.network;
 
+import edu.dkv.exceptions.NetworkException;
 import edu.dkv.internal.common.Utils;
 import edu.dkv.sdk.NetworkService;
 import org.apache.commons.lang3.SerializationUtils;
@@ -23,6 +24,11 @@ public class DatagramService implements NetworkService {
     private final int port;
     private final ApplicationBuffer buffer;
 
+    public DatagramService(int port){
+        this.port = port;
+        this.buffer = null;
+    }
+
     public DatagramService(int port, ApplicationBuffer buffer){
         this.port = port;
         this.buffer = buffer;
@@ -37,6 +43,9 @@ public class DatagramService implements NetworkService {
         try {
             this.socket = new DatagramSocket(port);
             logger.debug("Socket open successfully!!!");
+
+            if(socket.isClosed() && !socket.isConnected())
+                throw new NetworkException("ERROR: Socket NOT opened or connected !!!");
         } catch (SocketException e) {
             logger.error("Could not initialize Datagram service. \n{}", Utils.getFullStackTrace(e));
         }
@@ -58,6 +67,10 @@ public class DatagramService implements NetworkService {
 
             socket.close();
             logger.debug("Socket closed successfully !!!");
+
+            if(!socket.isClosed())
+                throw new NetworkException("ERROR: Socket still OPEN after closing.");
+
             return;
         }
         logger.trace("Socket is not intialized");
@@ -122,7 +135,8 @@ public class DatagramService implements NetworkService {
         try {
             logger.trace("Attempting to received packet...");
             socket.receive(packet);
-            buffer.addToBuffer(packet.getData(), packet.getLength());
+            if(buffer != null)
+                buffer.addToBuffer(packet.getData(), packet.getLength());
             logger.trace("Message RECEIVED successfully of length: {}", packet.getLength());
         } catch (IOException e) {
             logger.error("Unable to receive message. \n{}", Utils.getFullStackTrace(e));
