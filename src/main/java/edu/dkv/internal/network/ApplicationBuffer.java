@@ -1,54 +1,35 @@
 package edu.dkv.internal.network;
 
-import edu.dkv.exceptions.ApplicationBufferOverflowException;
-import edu.dkv.internal.common.Utils;
+import org.apache.commons.lang3.SerializationUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Queue;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.function.Function;
 
-import static edu.dkv.internal.common.Constants.APP_BUFFER_SIZE;
-
-public class ApplicationBuffer {
+public class ApplicationBuffer<T> {
 
     private final static Logger logger = LogManager.getLogger(ApplicationBuffer.class);
 
-    private final byte[] applicationBuffer = new byte[APP_BUFFER_SIZE];
-    private AtomicInteger offset = new AtomicInteger(0);
+    /**
+     * The non-blocking, unbounded, thread safe (lock free) queue for caching the
+     * incoming data. This queue acts as the application buffer for the network
+     * layer exchanging the messages. This class is generified to accomodate
+     * serialization and deserialization of byte[] into objects are required
+     * by the application.
+     */
+    private final ConcurrentLinkedQueue<T> dataQueue = new ConcurrentLinkedQueue<>();
 
-    private final Queue<String> msgQueue = new LinkedList<>();
-
-    public void addToBuffer(byte[] buffer, int bufferLength) throws ApplicationBufferOverflowException {
-        final int currBufferSize = offset.get();
-        int expectedSize = currBufferSize + bufferLength;
-        if(expectedSize > APP_BUFFER_SIZE){
-            logger.error("Application buffer is either full or cannot add incoming message.");
-            throw new ApplicationBufferOverflowException("ERROR: Application buffer is either full or cannot accomodate more messages. Size: " + expectedSize);
-        }
-
-        // Adding to application buffer.
-/*        for(int i = currBufferSize - 1, j = 0 ; i < currBufferSize - 1 + bufferLength ; i++, j++){
-            applicationBuffer[i] = buffer[j];
-        }*/
-        offset.set(expectedSize);
-
-        // Adding the incoming message to the msg-queue.
-        String incomingMessage = new String(buffer, 0, bufferLength);
-        logger.debug("Incoming Message: {}", incomingMessage);
-        msgQueue.offer(incomingMessage);
+    public void buffer(byte[] bufferData, int bufferLength)  {
+        logger.trace("Adding {} byte data to application buffer queue.", bufferLength);
+        dataQueue.add((T) SerializationUtils.deserialize(bufferData));
     }
 
-    public String readBuffer(){
-        // Return type to be changed to the message-type
-        // Handle concurrency, if buffer is being written to, then read should be delayed.
-        String first = !msgQueue.isEmpty() ? msgQueue.peek() : "";
-        if(first.length() != 0)
-            offset.set(Math.max(offset.get() - first.length(), 0));
-        return !msgQueue.isEmpty() ? msgQueue.poll() : null;
+    public T readBuffer(){
+        return !dataQueue.isEmpty() ? dataQueue.poll() : null;
+    }
+
+    public boolean isEmpty(){
+        return dataQueue.isEmpty();
     }
 }

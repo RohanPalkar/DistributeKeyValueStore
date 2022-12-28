@@ -10,7 +10,11 @@ public class Constants {
     public static final String LOG_FILE_NAME                           = "replica";
     public static final String LOG_FILE_SUFFIX                         = ".log";
 
-
+    // Network layer configuration.
+    public static final int UDP_SOCKET_TIMEOUT                         = 100;
     public static final int APP_BUFFER_SIZE                            = 30000;
     public static final int MAX_MSG_SIZE                               = 4000;
+
+    // Process configuration
+    public static final int DEFAULT_MAX_THREADS                        = 10;
 }

@@ -2,6 +2,7 @@ package edu.dkv.internal.network;
 
 import edu.dkv.exceptions.NetworkException;
 import edu.dkv.internal.common.Utils;
+import edu.dkv.internal.entities.EndPoint;
 import edu.dkv.sdk.NetworkService;
 import org.apache.commons.lang3.SerializationUtils;
 import org.apache.logging.log4j.LogManager;
@@ -12,26 +13,26 @@ import java.io.Serializable;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketException;
-import java.nio.charset.StandardCharsets;
+import java.net.SocketTimeoutException;
 
 import static edu.dkv.internal.common.Constants.MAX_MSG_SIZE;
+import static edu.dkv.internal.common.Constants.UDP_SOCKET_TIMEOUT;
 
-public class DatagramService implements NetworkService {
+public class DatagramService<T> implements NetworkService {
 
     private final static Logger logger = LogManager.getLogger(DatagramService.class);
 
     private DatagramSocket socket;
     private final int port;
-    private final ApplicationBuffer buffer;
+    private final ApplicationBuffer<T> appBuffer;
 
-    public DatagramService(int port){
+    /**
+     * Constructor : Primarily use for sending packets.
+     * @param port - port no. of the service.
+     */
+    public DatagramService(int port, ApplicationBuffer<T> appBuffer){
         this.port = port;
-        this.buffer = null;
-    }
-
-    public DatagramService(int port, ApplicationBuffer buffer){
-        this.port = port;
-        this.buffer = buffer;
+        this.appBuffer = appBuffer;
     }
 
     /**
@@ -42,6 +43,7 @@ public class DatagramService implements NetworkService {
     public void start() {
         try {
             this.socket = new DatagramSocket(port);
+            this.socket.setSoTimeout(UDP_SOCKET_TIMEOUT);
             logger.debug("Socket open successfully!!!");
 
             if(socket.isClosed() && !socket.isConnected())
@@ -83,7 +85,7 @@ public class DatagramService implements NetworkService {
      * @param data     - the data to be sent as byte array
      */
     @Override
-    public void sendMessage(final EndPoint endPoint, final byte[] data) {
+    public void sendMessages(final EndPoint endPoint, final byte[] data) {
         _sendMessage(endPoint, data);
     }
 
@@ -94,7 +96,7 @@ public class DatagramService implements NetworkService {
      * @param data     - the data to be sent as object.
      */
     @Override
-    public void sendMessage(final EndPoint endPoint, final Serializable data) {
+    public void sendMessages(final EndPoint endPoint, final Serializable data) {
         byte[] dataBytes = SerializationUtils.serialize(data);
         _sendMessage(endPoint, dataBytes);
     }
@@ -106,8 +108,40 @@ public class DatagramService implements NetworkService {
      * @param data     - the data to be sent as string data.
      */
     @Override
-    public void sendMessage(EndPoint endPoint, String data) {
-        _sendMessage(endPoint, data.getBytes(StandardCharsets.UTF_8));
+    public void sendMessages(EndPoint endPoint, String data) {
+        _sendMessage(endPoint, SerializationUtils.serialize(data));
+    }
+
+    /**
+     * Receives the data via the implemented protocol of the {@code NetworkService}
+     *
+     * This implementation works in a non-blocking fashion as there is a time-out
+     * set in the socket instance that throws the {@code SocketTimeoutException}
+     * after the time-out elapses. The exception is ignored and the control is
+     * returned to the caller to retry or loop around this implementation as desired.
+     *
+     * If the packets are indeed received, then the packets are pushed in to the
+     * application buffer as byte[] which will be handled by the higher layers.
+     *
+     */
+    @Override
+    public void receiveMessages() {
+        byte[] dataBytes = new byte[MAX_MSG_SIZE];
+        DatagramPacket packet = new DatagramPacket(dataBytes, dataBytes.length);
+
+        logger.trace("Attempting to receive packets...");
+        while(true){
+            try {
+                socket.receive(packet);
+                logger.debug("Packets RECEIVED from {} of length: {}", packet.getSocketAddress().toString(), packet.getLength());
+                appBuffer.buffer(packet.getData(), packet.getLength());
+                break;
+            } catch (SocketTimeoutException s){
+                return;
+            } catch (IOException e) {
+                logger.error("ERROR: Unable to receive messages !!!\n{}", Utils.getFullStackTrace(e));
+            }
+        }
     }
 
     private void _sendMessage(final EndPoint endPoint, final byte[] data){
@@ -120,27 +154,5 @@ public class DatagramService implements NetworkService {
         } catch (IOException e) {
             logger.error("Unable to send message. \n{}", Utils.getFullStackTrace(e));
         }
-    }
-
-    /**
-     * Receives the data via the implemented protocol of the {@code NetworkService}
-     * and adds it to the application buffer.
-     *
-     * @return {@code ApplicationBuffer} instance
-     */
-    @Override
-    public ApplicationBuffer receiveMessage() {
-        byte[] dataBytes = new byte[MAX_MSG_SIZE];
-        DatagramPacket packet = new DatagramPacket(dataBytes, dataBytes.length);
-        try {
-            logger.trace("Attempting to received packet...");
-            socket.receive(packet);
-            if(buffer != null)
-                buffer.addToBuffer(packet.getData(), packet.getLength());
-            logger.trace("Message RECEIVED successfully of length: {}", packet.getLength());
-        } catch (IOException e) {
-            logger.error("Unable to receive message. \n{}", Utils.getFullStackTrace(e));
-        }
-        return buffer;
     }
 }
