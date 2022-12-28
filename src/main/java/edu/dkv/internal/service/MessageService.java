@@ -1,6 +1,5 @@
 package edu.dkv.internal.service;
 
-import edu.dkv.app.ProcessBasedApplication;
 import edu.dkv.internal.common.Utils;
 import edu.dkv.internal.entities.UserProcess;
 import edu.dkv.internal.network.ApplicationBuffer;
@@ -9,12 +8,8 @@ import edu.dkv.sdk.NetworkService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.net.DatagramPacket;
-import java.sql.Time;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.concurrent.TimeUnit;
 
 public class MessageService {
 

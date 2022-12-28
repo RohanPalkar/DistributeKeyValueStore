@@ -10,19 +10,18 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.stereotype.Component;
 
 import java.net.UnknownHostException;
 import java.util.List;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
-import static edu.dkv.internal.common.Constants.*;
 
 @Component
 @PropertySource("classpath:application.properties")
@@ -124,7 +123,7 @@ public class ProcessBasedApplication implements KVStoreApplication {
 
         @Override
         public String get() {
-            ThreadContext.push("p"+String.valueOf(process.getProcessId()));
+            ThreadContext.push("p"+ process.getProcessId());
             MessageService messageService = new MessageService(process);
 
             // Finding a random target process to send the message to.
