@@ -12,7 +12,7 @@ public class StoreBootstrap {
 
     public static void main(String[] args) {
         ApplicationContext context = SpringApplication.run(StoreBootstrap.class, args);
-        KVStoreApplication storeApplication = context.getBean(ProcessBasedApplication.class);
+        KVStoreApplication storeApplication = context.getBean(GossipApplication.class);
         storeApplication.run();
     }
 }

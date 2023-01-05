@@ -18,9 +18,11 @@ public class ProcessConfig {
     private Integer maxThreads;
 
     // Port allocated for each process.
-    // Port Range [3000, 4000]
-    @NonNull @Min(3000) @Max(4000)
+    @NonNull
     private int portRangeStart;
+
+    @NonNull
+    private int portRangeStop;
 
     @NonNull @Max(10)
     private int msgReceiveTimeoutInSecs;
@@ -39,6 +41,14 @@ public class ProcessConfig {
 
     public void setPortRangeStart(int portRangeStart) {
         this.portRangeStart = portRangeStart;
+    }
+
+    public int getPortRangeStop() {
+        return portRangeStop;
+    }
+
+    public void setPortRangeStop(int portRangeStop) {
+        this.portRangeStop = portRangeStop;
     }
 
     public int getMsgReceiveTimeoutInSecs() {
@@ -62,6 +72,7 @@ public class ProcessConfig {
         return "ProcessConfig{" +
                 "\n count=" + count +
                 ",\n maxThreads=" + maxThreads +
+                ",\n portRangeStop=" + portRangeStop +
                 ",\n portRangeStart=" + portRangeStart +
                 ",\n msgReceiveTimeoutInSecs=" + msgReceiveTimeoutInSecs +
                 "\n}";

@@ -1,5 +1,6 @@
 package edu.dkv.internal.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,9 +14,25 @@ public class AppConfig {
         return new ProcessConfig();
     }
 
-    private int maxRunningTimeInMinutes;
+    @Value("${maxRunningTimeInMinutes}")
+    private Integer maxRunningTimeInMinutes;
+
+    @Value("${maxRunningTimeInSecs}")
+    private Integer maxRunningTimeInSecs;
 
     public long getRunningTime() {
-        return (long) maxRunningTimeInMinutes * 60 * 1000;
+        if(maxRunningTimeInMinutes != null)
+            return maxRunningTimeInMinutes * 60 * 1000;
+        if(maxRunningTimeInSecs != null)
+            return maxRunningTimeInSecs * 1000;
+        return -1;
+    }
+
+    @Override
+    public String toString() {
+        return "AppConfig {" +
+                "\nmaxRunningTime (long)=" + getRunningTime() +
+                "\nprocessConfig=" + processConfig() +
+                '}';
     }
 }

@@ -1,87 +1,58 @@
 package edu.dkv.internal.service;
 
-import edu.dkv.internal.entities.Member;
+import edu.dkv.internal.common.Utils;
+import edu.dkv.internal.config.ProcessConfig;
 import edu.dkv.internal.entities.UserProcess;
-import edu.dkv.sdk.FailureDetector;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.ThreadContext;
 
-import java.util.function.Supplier;
+import java.util.concurrent.Callable;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-public class GossipApplicationProcess implements Supplier<Boolean> {
+public class GossipApplicationProcess implements Callable<Boolean> {
 
     private final static Logger logger = LogManager.getLogger(GossipApplicationProcess.class);
 
-    private final FailureDetector failureDetector;
+    private final GossipFailureDetectorService gossipFailureDetectorService;
     private final UserProcess memberProcess;
-    private final UserProcess introducerProcess;
+    private final AtomicBoolean cancel;
 
-    private final Member member;
-
-    public GossipApplicationProcess(int index, int introducerId) {
-        this.memberProcess = new UserProcess(index, 0);
-        this.introducerProcess = new UserProcess(introducerId, 0);
-        this.failureDetector = new GossipFailureDetector(new GossipMessageService(memberProcess), introducerProcess);
-        this.member = null;
+    public GossipApplicationProcess(int index, UserProcess introducerProcess, ProcessConfig processConfig) {
+        this.memberProcess = introducerProcess.getProcessId() == index ?
+                introducerProcess : new UserProcess(index, Utils.getPort(processConfig));
+        logger.debug("Member Process: {}", memberProcess);
+        cancel = new AtomicBoolean(false);
+        this.gossipFailureDetectorService = new GossipFailureDetectorService(memberProcess, introducerProcess, cancel);
     }
 
     /**
-     * Gets a result.
+     * Computes a result, or throws an exception if unable to do so.
      *
-     * @return a result
+     * @return computed result
+     * @throws Exception if unable to compute a result
      */
     @Override
-    public Boolean get() {
-        return null;
+    public Boolean call() {
+        boolean status = false;
+        ThreadContext.push(memberProcess.getProcessName());
+        try {
+            gossipFailureDetectorService.run();
+            status = true;
+        } catch (Exception e) {
+            logger.error("ERROR: Exception occured while running failure detector.\n{}",
+                    Utils.getFullStackTrace(e));
+        } finally {
+            ThreadContext.pop();
+        }
+        return status;
     }
 
-    public static class SendGossipTask implements Runnable {
-
-        private final FailureDetector failureDetector;
-
-        public SendGossipTask(FailureDetector failureDetector) {
-            this.failureDetector = failureDetector;
-        }
-
-        /**
-         * When an object implementing interface <code>Runnable</code> is used
-         * to create a thread, starting the thread causes the object's
-         * <code>run</code> method to be called in that separately executing
-         * thread.
-         * <p>
-         * The general contract of the method <code>run</code> is that it may
-         * take any action whatsoever.
-         *
-         * @see Thread#run()
-         */
-        @Override
-        public void run() {
-
-        }
-    }
-
-    public static class ReceiveGossipTask implements Runnable {
-
-        private final FailureDetector failureDetector;
-
-        public ReceiveGossipTask(FailureDetector failureDetector) {
-            this.failureDetector = failureDetector;
-        }
-
-        /**
-         * When an object implementing interface <code>Runnable</code> is used
-         * to create a thread, starting the thread causes the object's
-         * <code>run</code> method to be called in that separately executing
-         * thread.
-         * <p>
-         * The general contract of the method <code>run</code> is that it may
-         * take any action whatsoever.
-         *
-         * @see Thread#run()
-         */
-        @Override
-        public void run() {
-
-        }
+    /**
+     * Shutdowns the Application Process by setting the 'isRunning' instance to false.
+     */
+    public void shutdown(){
+        logger.debug("Shutting-down the GossipApplicationProcess: {}", memberProcess.getProcessName());
+        cancel.set(true);
     }
 }

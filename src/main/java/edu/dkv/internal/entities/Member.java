@@ -44,6 +44,15 @@ public class Member {
     // MembershipTable
     private List<MemberListEntry> memberList;
 
+    public Member(){}
+
+    public Member(EndPoint endPoint){
+        this.endPoint = endPoint;
+        this.inited = true;
+        this.heartbeat = 0L;
+        this.memberList = new ArrayList<>();
+    }
+
     public EndPoint getEndPoint() {
         return endPoint;
     }

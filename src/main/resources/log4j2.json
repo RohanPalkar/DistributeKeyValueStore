@@ -16,7 +16,7 @@
           "fileName": "${env:SERVER_HOME}/log/replica_${env:SERVER_ID}.log",
           "append": false,
           "PatternLayout": {
-            "pattern": "%d{yyyy-MM-dd HH:mm:ss,SSS}{GMT+0} [%-5p][t%T]%x[%C{3}:%L] - %m%n"
+            "pattern": "%d{yyyy-MM-dd HH:mm:ss,nnnnnnnnn}{GMT+0} [%-5p][t%T]%x[%C{3}:%L] - %m%n"
           }
         },
         {

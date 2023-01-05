@@ -1,6 +1,7 @@
 package edu.dkv.internal.common;
 
 import edu.dkv.app.ProcessBasedApplication;
+import edu.dkv.internal.config.ProcessConfig;
 import edu.dkv.internal.entities.UserProcess;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -8,8 +9,14 @@ import org.apache.logging.log4j.Logger;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.ServerSocket;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 public class Utils {
 
@@ -58,6 +65,93 @@ public class Utils {
         logger.debug("Current Process: {}, \nTarget Process: {}", currentProcess, targetProcess);
         return targetProcess;
     }
+
+    public static int getPort(ProcessConfig processConfig){
+        int portMin = processConfig.getPortRangeStart();
+        int portMax = processConfig.getPortRangeStop();
+        int range = portMax - portMin;
+        int port = getRandomPortWithinRange(portMin, portMax);
+        while( port == -1 && range > 0 ){
+            --range;
+            port = getRandomPortWithinRange(portMin, portMax);
+        }
+        return port;
+    }
+
+    public static int getRandomPortWithinRange(int portMin, int portMax){
+        int randomPort = Utils.getRandomNumber(portMin, portMax);
+        logger.trace("Random port selected within [{}, {}]: {}", portMin, portMax, randomPort);
+
+        ServerSocket serverSocket = null;
+        DatagramSocket datagramSocket = null;
+        try {
+            serverSocket = new ServerSocket(randomPort);
+            datagramSocket = new DatagramSocket(randomPort);
+            return randomPort;
+        } catch (IOException e) {
+            if(e.getMessage().contains("Address already in use"))
+                logger.debug("Port {} already in use !!!", randomPort);
+            else
+                logger.trace("Issue encountered while checking for available port: {}", getFullStackTrace(e));
+        } finally {
+            if(datagramSocket != null)
+                datagramSocket.close();
+
+            if(serverSocket != null) {
+                try {
+                    serverSocket.close();
+                } catch (IOException e) {
+                    // ignore.
+                }
+            }
+        }
+
+        return -1;
+    }
+
+    /**
+     * Shuts down an {@code ExecutorService} instance gracefully while checking for
+     * any queue-ed up processes to complete/cancel also.
+     *
+     * @param executor - {@code ExecutorService} instance
+     */
+    public static void shutDownExecutor(ExecutorService executor){
+        logger.trace("Shutting down executor services");
+        logger.trace("Executor status before shutdown {}", executor.toString());
+        executor.shutdown();
+        try {
+            executor.awaitTermination(100, TimeUnit.MILLISECONDS);
+            if(!executor.shutdownNow().isEmpty())
+                logger.warn("Warning: Few tasks are still running for the primary executor. Ignoring them.");
+        } catch (InterruptedException e1) {
+            if(!executor.shutdownNow().isEmpty())
+                logger.warn("Warning: Few tasks are still running for the primary executor. Ignoring them.");
+        }
+        logger.trace("Executor status after shutdown {}", executor.toString());
+    }
+
+    /**
+     * Shuts down a {@code ScheduledThreadPoolExecutor} instance gracefully while
+     * making sure that any scheduled tasks are cleared and terminated.
+     *
+     * @param scheduler - {@code ScheduledThreadPoolExecutor} instance
+     */
+    public static void shutDownScheduler(ScheduledThreadPoolExecutor scheduler){
+        logger.trace("Shutting down scheduler services");
+        logger.trace("Scheduler status before shutdown {}", scheduler.toString());
+        scheduler.shutdown();
+        try {
+            scheduler.getQueue().clear();
+            scheduler.awaitTermination(100,TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e1) {
+            scheduler.shutdownNow();
+        }
+        logger.trace("Scheduler status after shutdown {}", scheduler.toString());
+
+        if(!scheduler.shutdownNow().isEmpty())
+            logger.warn("Warning: Few tasks are still running for the scheduler service. Ignoring them.");
+    }
+
 
 
 }
