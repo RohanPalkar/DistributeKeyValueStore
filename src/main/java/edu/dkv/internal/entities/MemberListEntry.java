@@ -30,6 +30,12 @@ public class MemberListEntry {
         this.timestamp = timestamp;
     }
 
+    public MemberListEntry(EndPoint endPoint, long heartbeat, long timestamp) {
+        this.endPoint = endPoint;
+        this.heartbeat = heartbeat;
+        this.timestamp = timestamp;
+    }
+
     public EndPoint getEndPoint() {
         return endPoint;
     }

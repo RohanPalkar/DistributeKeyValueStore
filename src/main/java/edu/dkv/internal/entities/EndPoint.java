@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.Objects;
 
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
@@ -16,12 +17,21 @@ import java.util.Objects;
         setterVisibility = JsonAutoDetect.Visibility.NONE)
 public class EndPoint {
 
-    private final InetAddress address;
+    private InetAddress address;
     private final int port;
 
     public EndPoint(){
         this.address = null;
         this.port = -1;
+    }
+
+    public EndPoint(int port){
+        try {
+            this.address = InetAddress.getLocalHost();
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+        }
+        this.port = port;
     }
 
     public EndPoint(InetAddress address, int port){

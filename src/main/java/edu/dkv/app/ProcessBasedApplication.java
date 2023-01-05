@@ -99,13 +99,8 @@ public class ProcessBasedApplication implements KVStoreApplication {
 
         @Override
         public UserProcess get() {
-            UserProcess process = null;
-            try {
-                process = new UserProcess(index, port);
-                logger.info("Introducing process : {}", process);
-            } catch (UnknownHostException e) {
-                logger.error(Utils.getFullStackTrace(e));
-            }
+            UserProcess process = new UserProcess(index, port);
+            logger.info("Introducing process : {}", process);
             return process;
         }
     }
@@ -123,7 +118,7 @@ public class ProcessBasedApplication implements KVStoreApplication {
 
         @Override
         public String get() {
-            ThreadContext.push("p"+ process.getProcessId());
+            ThreadContext.push(process.getProcessName());
             MessageService messageService = new MessageService(process);
 
             // Finding a random target process to send the message to.

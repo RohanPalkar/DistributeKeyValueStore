@@ -12,4 +12,10 @@ public class AppConfig {
     public ProcessConfig processConfig(){
         return new ProcessConfig();
     }
+
+    private int maxRunningTimeInMinutes;
+
+    public long getRunningTime() {
+        return (long) maxRunningTimeInMinutes * 60 * 1000;
+    }
 }

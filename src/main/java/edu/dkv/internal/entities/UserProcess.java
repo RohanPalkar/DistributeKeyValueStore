@@ -5,10 +5,13 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.stereotype.Component;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Objects;
+
+import static edu.dkv.internal.common.Constants.PROCESS_NAME_PREFIX;
 
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -17,15 +20,14 @@ import java.util.Objects;
         setterVisibility = JsonAutoDetect.Visibility.NONE)
 public class UserProcess {
 
-    private static final String PROCESS_NAME_PREFIX = "process_";
     private final String processName;
     private final int processId;
     private final EndPoint endPoint;
 
-    public UserProcess(int index, int port) throws UnknownHostException {
+    public UserProcess(int index, int port)  {
         this.processName = PROCESS_NAME_PREFIX.concat(String.valueOf(index));
         this.processId = index;
-        this.endPoint = new EndPoint(InetAddress.getLocalHost(), port);
+        this.endPoint = new EndPoint(port);
     }
 
     public String getProcessName() {

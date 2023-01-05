@@ -21,6 +21,7 @@ Following environment variables are exposed for controlling the logging configur
 - `SERVER_HOME` _(Mandatory)_ : The server log file will be generated under the following directory `$SERVER_HOME/log/replicaXXXX.log`
 - `SERVER_LOG_LEVEL` _(Default: `INFO`)_: All log4j2 supported log levels - specify level to override the default.
 - `SERVER_ID` : The replica-server-Id incase of a cluster environment or a process-Id (threadId) in case of single machine environment _(emulated)_.
+- `PROCESS_LOGGER` :  The logging is by default thread based logging i.e. it creates a separate log file for each thread. Setting the `PROCESS_LOGGER` for any non-null value activates the process-based logging that generates dedicated log files for each process separately. 
 
 ### Resources
 - [Java Tutorials - All About Sockets](https://docs.oracle.com/javase/tutorial/networking/sockets/definition.html)
