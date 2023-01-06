@@ -6,9 +6,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -36,22 +34,13 @@ public class Member {
     private long heartbeat;
 
     // Counter for next ping.
-    private int pingCounter;
+    private long pingCounter;
 
     // Counter for ping timeout.
     private int timeOutCounter;
 
     // MembershipTable
-    private List<MemberListEntry> memberList;
-
-    public Member(){}
-
-    public Member(EndPoint endPoint){
-        this.endPoint = endPoint;
-        this.inited = true;
-        this.heartbeat = 0L;
-        this.memberList = new ArrayList<>();
-    }
+    private Set<MemberListEntry> memberList;
 
     public EndPoint getEndPoint() {
         return endPoint;
@@ -101,11 +90,11 @@ public class Member {
         this.heartbeat = heartbeat;
     }
 
-    public int getPingCounter() {
+    public long getPingCounter() {
         return pingCounter;
     }
 
-    public void setPingCounter(int pingCounter) {
+    public void setPingCounter(long pingCounter) {
         this.pingCounter = pingCounter;
     }
 
@@ -117,17 +106,17 @@ public class Member {
         this.timeOutCounter = timeOutCounter;
     }
 
-    public List<MemberListEntry> getMemberList() {
+    public Set<MemberListEntry> getMemberList() {
         return memberList;
     }
 
-    public void setMemberList(List<MemberListEntry> memberList) {
+    public void setMemberList(Set<MemberListEntry> memberList) {
         this.memberList = memberList;
     }
 
     public void addMemberListEntry(MemberListEntry memberListEntry){
         if(this.memberList == null)
-            this.memberList = new ArrayList<>();
+            this.memberList = new HashSet<>();
         this.memberList.add(memberListEntry);
     }
 

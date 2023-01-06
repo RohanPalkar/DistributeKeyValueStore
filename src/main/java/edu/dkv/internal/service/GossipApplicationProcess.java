@@ -1,6 +1,7 @@
 package edu.dkv.internal.service;
 
 import edu.dkv.internal.common.Utils;
+import edu.dkv.internal.config.AppConfig;
 import edu.dkv.internal.config.ProcessConfig;
 import edu.dkv.internal.entities.UserProcess;
 import org.apache.logging.log4j.LogManager;
@@ -18,12 +19,11 @@ public class GossipApplicationProcess implements Callable<Boolean> {
     private final UserProcess memberProcess;
     private final AtomicBoolean cancel;
 
-    public GossipApplicationProcess(int index, UserProcess introducerProcess, ProcessConfig processConfig) {
+    public GossipApplicationProcess(int index, UserProcess introducerProcess, AppConfig appConfig) {
         this.memberProcess = introducerProcess.getProcessId() == index ?
-                introducerProcess : new UserProcess(index, Utils.getPort(processConfig));
-        logger.debug("Member Process: {}", memberProcess);
+                introducerProcess : new UserProcess(index, Utils.getPort(appConfig.processConfig()));
         cancel = new AtomicBoolean(false);
-        this.gossipFailureDetectorService = new GossipFailureDetectorService(memberProcess, introducerProcess, cancel);
+        this.gossipFailureDetectorService = new GossipFailureDetectorService(memberProcess, introducerProcess, appConfig, cancel);
     }
 
     /**

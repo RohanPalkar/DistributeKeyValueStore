@@ -1,9 +1,14 @@
 package edu.dkv.internal.entities;
 
+import org.apache.commons.lang3.SerializationUtils;
+
+import java.io.Serializable;
 import java.util.List;
 import java.util.Set;
 
-public class MembershipMessage {
+public class MembershipMessage implements Serializable {
+
+    public static final long serialVersionUID = 42L;
 
     private final MessageType messageType;
     private final EndPoint endPoint;

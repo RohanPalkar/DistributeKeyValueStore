@@ -1,30 +1,29 @@
 package edu.dkv.internal.config;
 
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
-import org.springframework.lang.NonNull;
 
 import javax.validation.constraints.Max;
-import javax.validation.constraints.Min;
+import javax.validation.constraints.NotNull;
 
 import static edu.dkv.internal.common.Constants.DEFAULT_MAX_THREADS;
 
 @ConfigurationPropertiesScan
 public class ProcessConfig {
 
-    @NonNull
+    @NotNull
     private int count;
 
     @Max(10)
     private Integer maxThreads;
 
     // Port allocated for each process.
-    @NonNull
+    @NotNull
     private int portRangeStart;
 
-    @NonNull
+    @NotNull
     private int portRangeStop;
 
-    @NonNull @Max(10)
+    @NotNull @Max(10)
     private int msgReceiveTimeoutInSecs;
 
     public int getCount() {

@@ -1,5 +1,6 @@
 package edu.dkv.internal.service;
 
+import edu.dkv.internal.entities.EndPoint;
 import edu.dkv.internal.entities.MembershipMessage;
 import edu.dkv.internal.entities.UserProcess;
 import edu.dkv.internal.network.ApplicationBuffer;
@@ -20,5 +21,9 @@ public class GossipMessageService {
         this.process = process;
         this.appBuffer = new ApplicationBuffer<>();
         this.network = new DatagramService(process.getEndPoint().getPort(), appBuffer);
+    }
+
+    public void sendMessage(EndPoint destTarget, MembershipMessage message){
+        network.sendMessages(destTarget, message);
     }
 }

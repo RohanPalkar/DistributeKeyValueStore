@@ -25,6 +25,7 @@ public class GossipApplication implements KVStoreApplication {
 
     private final static Logger logger = LogManager.getLogger(GossipApplication.class);
 
+    private final AppConfig appConfig;
     private final ProcessConfig processConfig;
     private final long maxTime;
     private final ExecutorService executorService;
@@ -34,6 +35,7 @@ public class GossipApplication implements KVStoreApplication {
 
     @Autowired
     public GossipApplication(AppConfig appConfig) {
+        this.appConfig = appConfig;
         logger.trace("Application-Configuration: {}", appConfig);
         this.processConfig = appConfig.processConfig();
 
@@ -75,7 +77,7 @@ public class GossipApplication implements KVStoreApplication {
                     logger.debug("Initiating the GossipApplicationProcess #{}", i);
 
                     // Primary future for creating the application process which is submitted by the executor service.
-                    GossipApplicationProcess gap = new GossipApplicationProcess(i, introducerProcess, processConfig);
+                    GossipApplicationProcess gap = new GossipApplicationProcess(i, introducerProcess, appConfig);
                     Future<Boolean> gapFuture = executorService.submit(gap);
 
                     // Scheduler for submitting a cancellation or shutdown call to the above futures

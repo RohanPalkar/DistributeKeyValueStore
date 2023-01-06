@@ -5,10 +5,19 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public interface FailureDetector {
 
     /**
+     * Initializes the member node
+     *
+     * @return - true if init succeeded.
+     */
+    boolean initNode();
+
+    /**
      * A member process is introduced to group of members that run another
      * instance of the Failure Detector.
+     *
+     * @return - true if introduction succeeded.
      */
-    void introduceSelfToGroup();
+    boolean introduceSelfToGroup();
 
     /**
      * Sends heartbeats using any failure detector protocol.

@@ -14,6 +14,10 @@ public class AppConfig {
         return new ProcessConfig();
     }
 
+    @Bean
+    @ConfigurationProperties(prefix = "gossip")
+    public GossipConfig gossipConfig() { return new GossipConfig(); }
+
     @Value("${maxRunningTimeInMinutes}")
     private Integer maxRunningTimeInMinutes;
 
