@@ -2,6 +2,7 @@ package edu.dkv.internal.service;
 
 import edu.dkv.internal.common.Utils;
 import edu.dkv.internal.config.AppConfig;
+import edu.dkv.internal.config.GossipConfig;
 import edu.dkv.internal.entities.*;
 import edu.dkv.sdk.FailureDetector;
 import org.apache.logging.log4j.LogManager;
@@ -10,28 +11,29 @@ import org.apache.logging.log4j.Logger;
 import java.util.List;
 import java.util.Set;
 
-public class GossipFailureDetector implements FailureDetector {
+import static edu.dkv.internal.common.Utils.getFullStackTrace;
+
+public class GossipFailureDetector extends AbstractFailureDetector {
 
     private final static Logger logger = LogManager.getLogger(GossipFailureDetector.class);
 
     private final long TFAIL;
     private final long TREMOVE;
-    private final long TGOSSIP;
+
 
     private final GossipMessageService msgService;
     private final UserProcess memberProcess;
     private final UserProcess introducer;
     private final Member member;
 
-    public GossipFailureDetector(UserProcess memberProcess, UserProcess introducer, AppConfig appConfig) {
+    public GossipFailureDetector(UserProcess memberProcess, UserProcess introducer, GossipConfig gossipConfig) {
         this.msgService = new GossipMessageService(memberProcess);
         this.memberProcess = memberProcess;
         this.introducer = introducer;
         this.member = new Member();
 
-        TFAIL = appConfig.gossipConfig().getTFail();
-        TREMOVE = appConfig.gossipConfig().getTRemove();
-        TGOSSIP = appConfig.gossipConfig().getTGossip();
+        TFAIL = gossipConfig.getTFail();
+        TREMOVE = gossipConfig.getTRemove();
     }
 
     /**
@@ -59,7 +61,7 @@ public class GossipFailureDetector implements FailureDetector {
             logger.trace("Node-entry: {}", nodeEntry);
 
         } catch (Exception e){
-            logger.error("Exception encounterd while initializing member node.\n{}", Utils.getFullStackTrace(e));
+            logger.error("Exception encounterd while initializing member node.\n{}", getFullStackTrace(e));
             return false;
         }
         logger.info("Member Node initialized");
@@ -98,26 +100,85 @@ public class GossipFailureDetector implements FailureDetector {
                 msgService.sendMessage(introducer.getEndPoint(), msg);
             }
         } catch (Exception e){
-            logger.error("Exception encountered while introducing self to the group: \n{}", Utils.getFullStackTrace(e));
+            logger.error("Exception encountered while introducing self to the group: \n{}", getFullStackTrace(e));
             return false;
         }
         return true;
     }
 
     /**
-     * Sends heartbeats using any failure detector protocol.
+     * Primary method for performing the membership protocol duties.
+     *
+     * @return - true if all operations succeeded
      */
     @Override
-    public void sendHeartbeats() {
-        logger.info("Sending heartbeats");
+    public boolean processHeartbeats() {
+        try {
+            logger.info("Processing Hearbeats");
+
+            if(!member.isFailed()) {
+                logger.debug("Checking messages/heartbeats");
+                checkMessages();
+            } else {
+                logger.error("Member node {} has failed", memberProcess.getProcessName());
+                return false;
+            }
+
+            if(member.isInGroup() && !member.isFailed()) {
+                logger.debug("Sending heartbeats");
+                sendHeartbeats();
+            } else {
+                logger.error("Member node {} has either failed or is not in the group", memberProcess.getProcessName());
+                return false;
+            }
+
+        } catch (Exception e){
+            logger.error("Exception encountered while processing each heartbeat in the failure-detector.\n{}",
+                    getFullStackTrace(e));
+            return false;
+        }
+        return true;
     }
 
     /**
-     * Receives heartbeats using any failure detector protocol.
+     * The messaging channel that buffers the incoming messages from
+     * fellow members.
+     * Typically execute in parallel to the membership protocol.
      */
     @Override
-    public void receiveHeartbeats() {
-        logger.info("Receive heartbeats");
+    public void msgInChannel() {
+        if(!member.isFailed())
+            msgService.receiveMessages();
+    }
+
+    /**
+     * Sends heartbeats using any failure detector protocol.
+     */
+    public void sendHeartbeats() {
+
+    }
+
+    /**
+     * Processes the received messages and
+     */
+    public void checkMessages() {
+        logger.info("Receive heartbeats/messages");
+        Set<MembershipMessage> messages = msgService.readMessages();
+        if (messages != null) {
+            for (MembershipMessage message : messages) {
+                logger.trace("Message: {}", message);
+
+                MessageType msgType = message.getMessageType();
+                switch (msgType) {
+                    case JOINREQ:
+                        break;
+                    case JOINREP:
+                        break;
+                    case GOSSIP_HEARTBEAT:
+                        break;
+                }
+            }
+        }
     }
 
     /**
@@ -128,9 +189,25 @@ public class GossipFailureDetector implements FailureDetector {
      */
     @Override
     public boolean exit() {
-        return false;
+        logger.info("Exiting the Failure Detector");
+        try {
+
+            // Sending a exit message to all neighbors.
+
+            // Closing the Network Service
+            msgService.stopService();
+
+        } catch (Exception e){
+            logger.error("Exception encountered while exiting.\n{}", getFullStackTrace(e));
+            return false;
+        }
+        return true;
     }
 
+    /**
+     * Methods that compares the current member to the introducer
+     * @return - true if the member is the introducer also.
+     */
     public boolean isIntroducer(){
         return memberProcess.equals(introducer);
     }

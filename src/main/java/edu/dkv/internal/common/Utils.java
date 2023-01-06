@@ -15,6 +15,7 @@ import java.net.ServerSocket;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -150,6 +151,27 @@ public class Utils {
 
         if(!scheduler.shutdownNow().isEmpty())
             logger.warn("Warning: Few tasks are still running for the scheduler service. Ignoring them.");
+    }
+
+    /**
+     * Shuts down a {@code ScheduledExecutorService} instance gracefully while
+     * making sure that any scheduled tasks are cleared and terminated.
+     *
+     * @param executor - {@code ScheduledExecutorService} instance
+     */
+    public static void shutDownScheduler(ScheduledExecutorService executor){
+        logger.trace("Shutting down ScheduledExecutorService services");
+        logger.trace("ScheduledExecutorService status before shutdown {}", executor.toString());
+        executor.shutdown();
+        try {
+            executor.awaitTermination(100, TimeUnit.MILLISECONDS);
+            if(!executor.shutdownNow().isEmpty())
+                logger.warn("Warning: Few tasks are still running for the primary executor. Ignoring them.");
+        } catch (InterruptedException e1) {
+            if(!executor.shutdownNow().isEmpty())
+                logger.warn("Warning: Few tasks are still running for the primary executor. Ignoring them.");
+        }
+        logger.trace("ScheduledExecutorService status after shutdown {}", executor.toString());
     }
 
 

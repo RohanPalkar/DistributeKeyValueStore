@@ -29,7 +29,7 @@ public class GossipApplication implements KVStoreApplication {
     private final ProcessConfig processConfig;
     private final long maxTime;
     private final ExecutorService executorService;
-    private final ScheduledThreadPoolExecutor scheduler;
+    private final ScheduledExecutorService scheduler; //ScheduledThreadPoolExecutor
     private final int processCount;
     private final int maxThreads;
 
@@ -52,8 +52,8 @@ public class GossipApplication implements KVStoreApplication {
         // The scheduler that terminates each process at the end of the
         // given time interval. RemoteOnCancelPolicy is set to true to
         // remove the process from the scheduler queue immediately.
-        scheduler = new ScheduledThreadPoolExecutor(processCount);
-        scheduler.setRemoveOnCancelPolicy(true);
+        scheduler = Executors.newScheduledThreadPool(processCount); //new ScheduledThreadPoolExecutor(processCount);
+        //scheduler.setRemoveOnCancelPolicy(true);
     }
 
     /**
