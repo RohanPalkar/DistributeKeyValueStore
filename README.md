@@ -10,6 +10,12 @@ A personal project for designing and implementing a distributed key value store.
 5. **Consistency Levels**: Define and implement consistency levels for Reads and Writes (preferably Quorum)
 6. **Stabilization Protocol**: Recreate and balance replicas in case of failure of nodes.
 7. **Coordinator Election**: To elect a node as the coordinator (via leader election / paxos)  
+<br>
+   
+#### Membership Protocol ####
+- **Protocol** : Uses a _Gossip Style Membership Protocol_.
+- **Partial Membership List** : In contrast to a full-membership-list that is maintained in Virtual Synchrony mechanism, this gossip style membership maintains a partial membership list at every node/process of fixed size which is less than the total number of nodes/processes in the system.
+  - `gossip.KList` - Specifies the size of the partial membership list as `K` where `K < N` and `N` is the total number of nodes/processes.
 
 ### Dependencies
 

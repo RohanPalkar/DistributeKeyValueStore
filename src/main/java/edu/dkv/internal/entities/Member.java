@@ -7,6 +7,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -40,7 +41,7 @@ public class Member {
     private int timeOutCounter;
 
     // MembershipTable
-    private Set<MemberListEntry> memberList;
+    private Map<EndPoint, MemberListEntry> membershipList;
 
     public EndPoint getEndPoint() {
         return endPoint;
@@ -90,8 +91,16 @@ public class Member {
         this.heartbeat = heartbeat;
     }
 
+    public void incrementHeartbeat(){
+        ++heartbeat;
+    }
+
     public long getPingCounter() {
         return pingCounter;
+    }
+
+    public void decrementPingCounter(){
+        --pingCounter;
     }
 
     public void setPingCounter(long pingCounter) {
@@ -106,18 +115,48 @@ public class Member {
         this.timeOutCounter = timeOutCounter;
     }
 
-    public Set<MemberListEntry> getMemberList() {
-        return memberList;
+    public Map<EndPoint, MemberListEntry> getMembershipList() {
+        return membershipList;
     }
 
-    public void setMemberList(Set<MemberListEntry> memberList) {
-        this.memberList = memberList;
+    public Set<MemberListEntry> getMembershipListForMessage(){
+        return new HashSet<>(membershipList.values());
     }
 
-    public void addMemberListEntry(MemberListEntry memberListEntry){
-        if(this.memberList == null)
-            this.memberList = new HashSet<>();
-        this.memberList.add(memberListEntry);
+    public MemberListEntry getMemberListEntry(EndPoint endPoint){
+        return endPoint != null && membershipList != null ? membershipList.get(endPoint) : null;
+    }
+
+    public void setMembershipList(Map<EndPoint, MemberListEntry> membershipList) {
+        this.membershipList = membershipList;
+    }
+
+    public void addToMembershipList(EndPoint endPoint, MemberListEntry entry){
+        if(this.membershipList == null)
+            this.membershipList = new ConcurrentHashMap<>();
+        this.membershipList.put(endPoint, entry);
+    }
+
+    public boolean containsMemberListEntry(EndPoint endPoint){
+        return membershipList != null && membershipList.containsKey(endPoint);
+    }
+
+    public String printMembershipList(){
+        if(membershipList == null || membershipList.isEmpty()){
+            return "";
+        }
+
+        StringBuffer sb = new StringBuffer();
+        sb.append("{\n");
+        membershipList.forEach((k,v) -> {
+            sb.append(" [ ");
+            sb.append(k);
+            sb.append(" :: " + v.getHeartbeat());
+            sb.append(" :: " + v.getTimestamp());
+            sb.append(" ]\n");
+        });
+        sb.append("}");
+        return sb.toString();
     }
 
     @Override
