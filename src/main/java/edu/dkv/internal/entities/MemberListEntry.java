@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import java.io.Serializable;
 import java.net.InetAddress;
 import java.util.Objects;
 
@@ -14,7 +15,9 @@ import java.util.Objects;
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY,
         getterVisibility = JsonAutoDetect.Visibility.NONE,
         setterVisibility = JsonAutoDetect.Visibility.NONE)
-public class MemberListEntry {
+public class MemberListEntry implements Serializable {
+
+    public static final long serialVersionUID = 11L;
 
     private EndPoint endPoint;
     private long heartbeat;
@@ -75,14 +78,7 @@ public class MemberListEntry {
 
     @Override
     public String toString() {
-        try {
-            return new ObjectMapper()
-                    .writerWithDefaultPrettyPrinter()
-                    .writeValueAsString(this);
-        } catch (JsonProcessingException e) {
-            e.printStackTrace();
-        }
-        return null;
+        return " [ " + endPoint + " :: " + heartbeat + " :: " + timestamp + " ]";
     }
 
     /**

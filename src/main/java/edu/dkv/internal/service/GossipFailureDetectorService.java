@@ -35,7 +35,7 @@ public class GossipFailureDetectorService implements FailureDetector {
     @Override
     public boolean runFailureDetector() {
         boolean status = false;
-        logger.debug("Initializing the failure-detector service");
+        logger.info("Initializing the failure-detector service");
 
         // Initializing the node & it's membership list with the member process
         if(!failureDetector.initNode())
@@ -60,12 +60,13 @@ public class GossipFailureDetectorService implements FailureDetector {
         // Both the task instances.
         HeartbeatProcess heartbeat = new HeartbeatProcess(failureDetector, memberProcess);
         InChannel channel = new InChannel(failureDetector, memberProcess);
+        logger.info("Running the failure-detector service");
 
         // Future # 1 - Heartbeat Processor Future
         CompletableFuture<Void> heartbeatFuture = CompletableFuture.supplyAsync(() -> {
             ThreadContext.push(memberProcess.getProcessName());
             try {
-                logger.trace("Scheduling heartbeat processer at fixed rate of {} seconds", TGOSSIP);
+                logger.debug("Scheduling heartbeat processer at fixed rate of {} seconds", TGOSSIP);
                 ScheduledFuture<?> future = gossipScheduler.scheduleAtFixedRate(heartbeat, 0, TGOSSIP, TimeUnit.SECONDS);
                 future.get();
             } catch (InterruptedException | ExecutionException e) {
@@ -80,7 +81,7 @@ public class GossipFailureDetectorService implements FailureDetector {
         CompletableFuture<Void> msgChannelFuture = CompletableFuture.supplyAsync(() -> {
             ThreadContext.push(memberProcess.getProcessName());
             try {
-                logger.trace("Submitting Msg Channel task");
+                logger.debug("Preparing the Msg-Channel task");
                 Future<?> future = executor.submit(channel);
                 future.get();
             } catch (InterruptedException | ExecutionException e) {
@@ -92,36 +93,38 @@ public class GossipFailureDetectorService implements FailureDetector {
         });
 
         // Future # 3 - Cancellation Future
+        logger.debug("Preparing the Cancelling-future task");
         CompletableFuture<Void> cancelFuture = CompletableFuture.supplyAsync(() -> {
-            ThreadContext.push(memberProcess.getProcessName());
             try {
-                logger.trace("Submitting cancelling future task");
                 Future<?> future = executor.submit(() -> {
+                    ThreadContext.push(memberProcess.getProcessName());
+                    try {
+                        // Do Nothing. Keep executing and waiting for a cancel signal from the higher application layer.
+                        while (!doCancel.get()) {}
 
-                    // Do Nothing. Keep executing and waiting for a cancel signal from the higher application layer.
-                    while(!doCancel.get()){}
+                        // Upon receiving a cancel from app layer, individual tasks of heartbeat and channel
+                        // will be terminated by marking the inner atomic-flag for shutdown.
+                        heartbeat.shutdown();
+                        channel.shutdown();
 
-                    // Upon receiving a cancel from app layer, individual tasks of heartbeat and channel
-                    // will be terminated by marking the inner atomic-flag for shutdown.
-                    heartbeat.shutdown();
-                    channel.shutdown();
-
-                    // Although the tasks are set to shutdown, the future instances are still running.
-                    // They also need to be cancelled.
-                    heartbeatFuture.cancel(true);
-                    msgChannelFuture.cancel(true);
+                        // Although the tasks are set to shutdown, the future instances are still running.
+                        // They also need to be cancelled.
+                        heartbeatFuture.cancel(true);
+                        msgChannelFuture.cancel(true);
+                    } catch (Exception e){
+                        logger.error("Exception encountered with the cancel-task\n{}", getFullStackTrace(e));
+                    } finally {
+                        ThreadContext.pop();
+                    }
                 });
                 future.get();
             } catch (InterruptedException | ExecutionException e) {
                 logger.error("Exception encountered with the cancel future.\n{}", getFullStackTrace(e));
-            } finally {
-                ThreadContext.pop();
             }
             return null;
         });
 
         // Combining all futures together and executing them.
-        logger.info("Running the failure-detector service");
         try {
             CompletableFuture
                     .allOf(heartbeatFuture, msgChannelFuture, cancelFuture)

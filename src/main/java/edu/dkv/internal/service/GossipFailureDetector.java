@@ -10,11 +10,13 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static edu.dkv.internal.common.Utils.getFullStackTrace;
+import static edu.dkv.internal.common.Utils.printMembershipList;
 
 public class GossipFailureDetector extends AbstractFailureDetector {
 
     private final static Logger logger = LogManager.getLogger(GossipFailureDetector.class);
 
+    private final int PING;
     private final long TFAIL;
     private final long TREMOVE;
     private final int KLIST;
@@ -35,6 +37,7 @@ public class GossipFailureDetector extends AbstractFailureDetector {
         this.failedMembers = new ArrayList<>();
 
         TFAIL = gossipConfig.getTFail();
+        PING = (int) TFAIL;
         TREMOVE = gossipConfig.getTRemove();
         KLIST = gossipConfig.getKList();
         GOSSIP = gossipConfig.getGossip();
@@ -54,6 +57,7 @@ public class GossipFailureDetector extends AbstractFailureDetector {
             member.setInited(true);
 
             // Setting the current node details
+            member.setEndPoint(memberProcess.getEndPoint());
             member.setNeighborCount(0);
             member.setHeartbeat(0);
             member.setPingCounter(TFAIL);
@@ -118,7 +122,7 @@ public class GossipFailureDetector extends AbstractFailureDetector {
     @Override
     public boolean processHeartbeats() {
         try {
-            logger.trace("Processing Hearbeats");
+            logger.trace("Processing Heartbeats");
 
             // If the member has been marked failed, then it can no longer participate in
             // gossip protocol, hence it's marked for deletion.
@@ -164,39 +168,52 @@ public class GossipFailureDetector extends AbstractFailureDetector {
      * its membership list, after TFAIL time has elapsed.
      */
     public void sendHeartbeats() {
-        logger.trace("Sending heartbeats");
+        logger.trace("Sending heartbeats...");
 
-        // Decrementing the ping counter until it is 0. It is then reset with TFAIL value
-        if(member.getPingCounter() == 0) {
-            logger.trace("Ping counter is 0. Time to send heartbeats");
+        // Detect any failures.
+        detectFailure();
 
-            // Detect any failues.
-            detectFailure();
+        // Incrementing the heartbeat of the current member
+        member.incrementHeartbeat();
+        logger.debug("Updated heartbeat: {}", member.getHeartbeat());
 
-            // Incrementing the heartbeat of the current member
-            member.incrementHeartbeat();
+        // Updating the heartbeat of the current member in the membership list that
+        // also contains the current member node.
+        if(member.containsMemberListEntry(member.getEndPoint())){
+            MemberListEntry selfEntry = member.getMemberListEntry(member.getEndPoint());
+            if(selfEntry != null)
+                selfEntry.setHeartbeat(member.getHeartbeat());
+        }
 
-            // Updating the heartbeat of the current member in the membership list that
-            // also contains the current member node.
-            if(member.containsMemberListEntry(member.getEndPoint())){
-                MemberListEntry selfEntry = member.getMemberListEntry(member.getEndPoint());
-                if(selfEntry != null)
-                    selfEntry.setHeartbeat(member.getHeartbeat());
-            }
+        // Finding GOSSIP no. of neighbors within the list, other than the self node.
+        Set<EndPoint> gossipNeighbors = findGossipNeighbors();
 
-            // Finding GOSSIP no. of neighbors within the list, other than the self node.
-            findGossipNeighbors();
-
+        if(!gossipNeighbors.isEmpty()) {
             // Iterating over each of the gossip neighbors to send the gossip/heartbeat messages
-            
+            MembershipMessage gossipMsg = MembershipMessage.createMessage()
+                    .setMessageType(MessageType.GOSSIP_HEARTBEAT)
+                    .setEndPoint(member.getEndPoint())
+                    .setHeartbeat(member.getHeartbeat())
+                    .setMembershipList(member.getMembershipListForMessage())
+                    .build();
+            logger.debug("Gossip Message to be sent to {} gossip-neighbors: \n{}",
+                    gossipNeighbors.size(), gossipMsg);
+            gossipNeighbors.forEach(gn -> msgService.sendMessage(gn, gossipMsg));
+        }
 
-            // Setting the ping counter to TFAIL again
-            member.setPingCounter(TFAIL);
+        logger.trace("Heartbeat sending completed");
 
+
+        // Setting the ping counter to PING again
+        //member.setPingCounter(PING);
+        // Decrementing the ping counter until it is 0. It is then reset with TFAIL value
+        /*if(member.getPingCounter() == 0) {
+            logger.trace("Ping counter is 0. Time to send heartbeats");
         } else {
             // Decrementing the counter... no action required as of now
             member.decrementPingCounter();
-        }
+            logger.trace("{} - Periodic ping counter not there yet...skipping heartbeat sends", member.getPingCounter());
+        }*/
     }
 
     /**
@@ -231,6 +248,7 @@ public class GossipFailureDetector extends AbstractFailureDetector {
 
             // Adding the local failed members to the overall failed list
             failedMembers.addAll(new ArrayList<>(newlyFailedMembers));
+            logger.trace("All failed members: {}", failedMembers);
         }
         logger.trace("Failed detection completed");
     }
@@ -242,8 +260,9 @@ public class GossipFailureDetector extends AbstractFailureDetector {
      * @return set of member neighbors
      */
     Set<EndPoint> findGossipNeighbors(){
+        logger.trace("Preparing the list of gossip-neighbors");
         // Maintaining a unique collection of gossip-neighbors.
-        Set<EndPoint> gossipNeighbors = null;
+        Set<EndPoint> gossipNeighbors = new HashSet<>();
 
         // Checking if the list is empty or not, otherwise if it's not empty, can't gossip.
         if(!member.getMembershipList().isEmpty()){
@@ -252,17 +271,38 @@ public class GossipFailureDetector extends AbstractFailureDetector {
 
             // If the no. of neighbors is less than the GOSSIP count, then prepare all of them
             // as gossip-neighbors excluding the current member node.
-            if(neighbors.size() <= GOSSIP){
+            if(neighbors.size() + 1 <= GOSSIP){
                 gossipNeighbors = neighbors.stream()
                         .filter(n -> !n.equals(currentMemberNode))
                         .collect(Collectors.toSet());
-                logger.trace("Minimal gossip neighbors : {}\n{}", gossipNeighbors.size(), gossipNeighbors);
+
+                if(gossipNeighbors.size() > 0)
+                    logger.trace("Minimal gossip neighbors : {}\n{}", gossipNeighbors.size(), gossipNeighbors);
+                else
+                    logger.warn("No gossip neighbors found");
             } else {
 
                 // Iterating over the list until we get all unique GOSSIP no. of neighbors.
                 // Since we know that the neighbors size is more than GOSSIP, we should get
-                // GOSSIP unique no.
-                // TODO:
+                // GOSSIP unique members.
+                List<EndPoint> neighborsList = new ArrayList<>(neighbors);
+                while(gossipNeighbors.size() != GOSSIP){
+
+                    // Generating random index
+                    int randomIndex = Utils.getRandomNumber(0, gossipNeighbors.size());
+                    EndPoint randomMember = neighborsList.get(randomIndex);
+
+                    // Checking if the random index is unique and adding the corresponding the random member
+                    // to the gossip neighbors list only if it hasn't been added already and it is not equal
+                    // to the current member node.
+                    if(!gossipNeighbors.contains(randomMember) && !randomMember.equals(member.getEndPoint()))
+                        gossipNeighbors.add(randomMember);
+                }
+
+                if(gossipNeighbors.size() > 0)
+                    logger.trace("Full gossip neighbors: {}\n{}", gossipNeighbors.size(), gossipNeighbors);
+                else
+                    logger.warn("No gossip neighbors found");
             }
         } else
             logger.debug("Membership list for {} is empty. Can't Gossip", member.getEndPoint());
@@ -270,15 +310,13 @@ public class GossipFailureDetector extends AbstractFailureDetector {
         return gossipNeighbors;
     }
 
-
-
     /**
      * Processes the received messages and based on the individual message type,
      * appropriate handling/processing of the messages is done for each of the
      * messages queued in the application buffer of the current member node.
      */
     public void checkMessages() {
-        logger.debug("Checking heartbeats/messages");
+        logger.trace("Checking heartbeats/messages");
         Set<MembershipMessage> messages = msgService.readMessages();
         if (messages != null) {
             for (MembershipMessage message : messages) {
@@ -295,7 +333,7 @@ public class GossipFailureDetector extends AbstractFailureDetector {
                 }
             }
         }
-        logger.debug("Heartbeat message processing completed");
+        logger.trace("Heartbeat message processing completed");
     }
 
     /**
@@ -328,7 +366,7 @@ public class GossipFailureDetector extends AbstractFailureDetector {
         if(existingMembers.size() > KLIST)
             removeRandomMember(existingMembers);
         member.addToMembershipList(message.getEndPoint(), entry);
-        logger.trace("Updated membership-list: {}", member.printMembershipList());
+        logger.trace("Updated membership-list: {}", printMembershipList(member.getMembershipList()));
 
         // The current node (introducer in this case) sends a JOINREP Membership message to the member node
         // that joined the group earlier by sending a JOINREQ.
@@ -338,7 +376,7 @@ public class GossipFailureDetector extends AbstractFailureDetector {
                 .setHeartbeat(member.getHeartbeat())
                 .setMembershipList(member.getMembershipListForMessage())
                 .build();
-        logger.trace("JoinRep Msg: {}", joinRepMsg);
+        logger.trace("Attempting to send JOIN_REP Msg: {}", joinRepMsg);
 
         msgService.sendMessage(message.getEndPoint(), joinRepMsg);
         logger.trace("JOINREQ message processing completed");
@@ -366,7 +404,7 @@ public class GossipFailureDetector extends AbstractFailureDetector {
         // introducer first. Thus, updating the membership list at the current node (non-introducer) from
         // the list received from the introducer.
         Set<MemberListEntry> sourceList = message.getMembershipList();
-        logger.trace("Received source-list from introducer: {}", sourceList);
+        logger.trace("Received source-list from introducer: {}", printMembershipList(sourceList));
 
         // Iterates through the source list and adds the missing node to the current member node's
         // membership list if the node to be added doesn't already exist in the list and that it is
@@ -393,6 +431,11 @@ public class GossipFailureDetector extends AbstractFailureDetector {
      */
     void processGossip(MembershipMessage message){
         logger.trace("Processing Gossip Message: {}", message);
+
+        if(!member.isInGroup()){
+            logger.warn("Member node {} is still not part of the group. Can't receive/process heartbeats - msg dropped", memberProcess.getProcessName());
+            return;
+        }
 
         // The membership list at the current member node and the one received from the
         // member node as part of Gossip Message is merged together according to the

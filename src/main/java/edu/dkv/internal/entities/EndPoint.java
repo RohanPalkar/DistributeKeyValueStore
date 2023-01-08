@@ -3,9 +3,8 @@ package edu.dkv.internal.entities;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
+import java.io.Serializable;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Objects;
@@ -15,7 +14,9 @@ import java.util.Objects;
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY,
         getterVisibility = JsonAutoDetect.Visibility.NONE,
         setterVisibility = JsonAutoDetect.Visibility.NONE)
-public class EndPoint {
+public class EndPoint implements Serializable {
+
+    public static final long serialVersionUID = 37L;
 
     private InetAddress address;
     private final int port;
@@ -66,6 +67,6 @@ public class EndPoint {
 
     @Override
     public String toString() {
-        return "EndPoint { " + Objects.requireNonNull(address).getHostName() + ":" + port + " }";
+        return " { " + Objects.requireNonNull(address).getHostName() + ":" + port + " }";
     }
 }

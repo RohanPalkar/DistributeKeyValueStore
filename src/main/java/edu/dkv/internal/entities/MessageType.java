@@ -6,5 +6,6 @@ public enum MessageType {
     JOINREP,
     UPDATEREQ,
     UPDATEREP,
+    EXIT,
     GOSSIP_HEARTBEAT;
 }

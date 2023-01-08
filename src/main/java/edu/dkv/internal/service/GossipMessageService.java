@@ -43,7 +43,8 @@ public class GossipMessageService {
      * application buffer.
      */
     public void receiveMessages(){
-        network.receiveMessages();
+        if(!Thread.currentThread().isInterrupted())
+            network.receiveMessages();
     }
 
     /**

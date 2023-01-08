@@ -1,10 +1,11 @@
 package edu.dkv.internal.entities;
 
-import org.apache.commons.lang3.SerializationUtils;
+import edu.dkv.internal.common.Utils;
 
 import java.io.Serializable;
-import java.util.List;
 import java.util.Set;
+
+import static edu.dkv.internal.common.Utils.printMembershipList;
 
 public class MembershipMessage implements Serializable {
 
@@ -83,5 +84,16 @@ public class MembershipMessage implements Serializable {
 
     public Set<MemberListEntry> getMembershipList() {
         return membershipList;
+    }
+
+    @Override
+    public String toString() {
+        return "MembershipMessage {" +
+                "\n messageType=" + messageType +
+                "\n, endPoint=" + endPoint +
+                "\n, heartbeat=" + heartbeat +
+                "\n, sizeOfMembershipList=" + sizeOfMembershipList +
+                "\n, membershipList=" + printMembershipList(membershipList) +
+                "\n}";
     }
 }

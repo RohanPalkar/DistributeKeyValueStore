@@ -17,6 +17,7 @@ import java.net.SocketTimeoutException;
 
 import static edu.dkv.internal.common.Constants.MAX_MSG_SIZE;
 import static edu.dkv.internal.common.Constants.UDP_SOCKET_TIMEOUT;
+import static edu.dkv.internal.common.Utils.getFullStackTrace;
 
 public class DatagramService<T> implements NetworkService {
 
@@ -49,7 +50,7 @@ public class DatagramService<T> implements NetworkService {
             if(socket.isClosed() && !socket.isConnected())
                 throw new NetworkException("ERROR: Socket NOT opened or connected !!!");
         } catch (SocketException e) {
-            logger.error("Could not initialize Datagram service. \n{}", Utils.getFullStackTrace(e));
+            logger.error("Could not initialize Datagram service. \n{}", getFullStackTrace(e));
         }
     }
 
@@ -129,30 +130,33 @@ public class DatagramService<T> implements NetworkService {
         byte[] dataBytes = new byte[MAX_MSG_SIZE];
         DatagramPacket packet = new DatagramPacket(dataBytes, dataBytes.length);
 
-        logger.trace("Attempting to receive packets...");
-        while(true){
+        while(!socket.isClosed()){
             try {
                 socket.receive(packet);
                 logger.debug("Packets RECEIVED from {} of length: {}", packet.getSocketAddress().toString(), packet.getLength());
                 appBuffer.buffer(packet.getData(), packet.getLength());
                 break;
-            } catch (SocketTimeoutException s){
+            } catch (SocketTimeoutException s) {
                 return;
+            } catch (SocketException s1){
+                logger.error("SocketException encountered: \n{}", getFullStackTrace(s1));
             } catch (IOException e) {
-                logger.error("ERROR: Unable to receive messages !!!\n{}", Utils.getFullStackTrace(e));
+                logger.error("ERROR: Unable to receive messages !!!\n{}", getFullStackTrace(e));
             }
         }
     }
 
     private void _sendMessage(final EndPoint endPoint, final byte[] data){
-        try {
-            logger.trace("Attempting to send packet of length [{}] to {}:{}",
-                    data.length, endPoint.getAddress(), endPoint.getPort());
-            DatagramPacket packet = new DatagramPacket(data, data.length, endPoint.getAddress(), endPoint.getPort());
-            socket.send(packet);
-            logger.trace("Message SENT successfully!!!");
-        } catch (IOException e) {
-            logger.error("Unable to send message. \n{}", Utils.getFullStackTrace(e));
+        if(!socket.isClosed()) {
+            try {
+                logger.trace("Attempting to send packet of length [{}] to {}:{}",
+                        data.length, endPoint.getAddress(), endPoint.getPort());
+                DatagramPacket packet = new DatagramPacket(data, data.length, endPoint.getAddress(), endPoint.getPort());
+                socket.send(packet);
+                logger.trace("Message SENT successfully!!!");
+            } catch (IOException e) {
+                logger.error("Unable to send message. \n{}", getFullStackTrace(e));
+            }
         }
     }
 }

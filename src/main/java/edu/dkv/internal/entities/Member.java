@@ -141,24 +141,6 @@ public class Member {
         return membershipList != null && membershipList.containsKey(endPoint);
     }
 
-    public String printMembershipList(){
-        if(membershipList == null || membershipList.isEmpty()){
-            return "";
-        }
-
-        StringBuffer sb = new StringBuffer();
-        sb.append("{\n");
-        membershipList.forEach((k,v) -> {
-            sb.append(" [ ");
-            sb.append(k);
-            sb.append(" :: " + v.getHeartbeat());
-            sb.append(" :: " + v.getTimestamp());
-            sb.append(" ]\n");
-        });
-        sb.append("}");
-        return sb.toString();
-    }
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

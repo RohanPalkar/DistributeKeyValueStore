@@ -2,6 +2,8 @@ package edu.dkv.internal.common;
 
 import edu.dkv.app.ProcessBasedApplication;
 import edu.dkv.internal.config.ProcessConfig;
+import edu.dkv.internal.entities.EndPoint;
+import edu.dkv.internal.entities.MemberListEntry;
 import edu.dkv.internal.entities.UserProcess;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -12,8 +14,7 @@ import java.io.PrintWriter;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.ServerSocket;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -174,6 +175,25 @@ public class Utils {
         logger.trace("ScheduledExecutorService status after shutdown {}", executor.toString());
     }
 
+    public static String printMembershipList(Map<EndPoint, MemberListEntry> membershipList){
+        if(membershipList == null || membershipList.isEmpty())
+            return "";
 
+        return printMembershipList(new HashSet<>(membershipList.values()));
+    }
+
+    public static String printMembershipList(Set<MemberListEntry> membershipList){
+        if(membershipList == null || membershipList.isEmpty())
+            return "";
+
+        StringBuffer sb = new StringBuffer();
+        sb.append("\n{\n");
+        membershipList
+                .forEach(v -> sb.append(" ")
+                                .append(v)
+                                .append("\n"));
+        sb.append("}");
+        return sb.toString();
+    }
 
 }
